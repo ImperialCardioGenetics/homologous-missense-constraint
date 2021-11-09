@@ -1,5 +1,7 @@
 Step 1. Seperate each domain alignment into individual files
+
 job script: 
+
 python write_stockholm.py $pfam_path/Pfam-A.full.ncbi.gz human_pfam_domain_id_uniq_sort output_forlder error_folder
 
 
