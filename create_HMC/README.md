@@ -13,7 +13,7 @@ sample cmd:
 
 (example input file: step2/human_pfam_domain_id_uniq_sortaa)
 
-### Step 3. Get the synthetic SNVs from the file of Step 2 by merging it with all possible missense variants annotated on human proteome (RefSeq). 
+### Step 3. Get the synthetic SNVs from the file of Step 2 by merging it with all possible missense variants annotated on human transcripts (version: Refseq Select). 
 
 sample cmd: 
 
