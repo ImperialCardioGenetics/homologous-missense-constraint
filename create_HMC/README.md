@@ -22,3 +22,7 @@ sample cmd:
 (The input file is a list of files output from step2)
 
 ### Step 4: Calculate constraint 
+
+sample cmd:
+
+```Rscript calculate_constraint.R domain_id```
