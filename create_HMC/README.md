@@ -1,4 +1,4 @@
-These are the steps to create HMC scores. To run the scripts, the respective file and folder paths would need to be changed.
+These are the steps to create HMC scores. The essential scripts and example input files are provided in seperate folders correpsonding to the steps. To run the scripts, the respective file and folder paths would need to be changed.
 
 ### Step 1. Seperate each domain alignment into individual files
 
