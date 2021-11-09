@@ -8,10 +8,17 @@ These are the steps to create HMC scores. The essential scripts and example inpu
 ### Step 2. From each domain alignment file, we extract the residue: AA, AA position on RefSeq, AA position in the pfam domain alignment (MSA_pos) and pfam_id
 
 sample cmd:
+
 ``` python extract_pfam_aa.py a_list_of_pfam_id```
+
 (example input file: step2/human_pfam_domain_id_uniq_sortaa)
 
 ### Step 3. Get the synthetic SNVs from the file of Step 2 by merging it with all possible missense variants annotated on human proteome (RefSeq). 
 
-Folder: split_merge_np_missense
-```sample cmd: python merge_pfam_domain_np_missense_var.py human_pfam_aa_list```
+sample cmd: 
+
+```python merge_refseq_select.py list_of_human_pfam_aa_files```
+
+(The input file is a list of files output from step2)
+
+
