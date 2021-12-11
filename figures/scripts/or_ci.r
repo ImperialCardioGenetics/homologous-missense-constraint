@@ -38,9 +38,9 @@ or_pv<-function(case_freq,control_freq,patient_number,gnomAD_number){
   mat=matrix(c(.a, .b, M1 <- .a + .b, .c, .d, M0 <- .c + 
              .d, N1 <- .a + .c, N0 <- .b + .d, Total <- .a + .b + 
              .c + .d), 3, 3)
-  p.v <- 2 * (1 - pnorm(abs((.a - N1 * M1/Total)/sqrt(N1 * 
-                                                        N0 * M1 * M0/Total/Total/(Total - 1)))))
-  return(p.v)
+  #transform to log scale to get the precise number
+  log10p.v <- log10(exp(1))*(log(2) +pnorm(abs((.a - N1 * M1/Total)/sqrt(N1 * N0 * M1 * M0/Total/Total/(Total - 1))),log.p=TRUE,lower.tail=FALSE))
+  return(log10p.v)
   }
 
 se_log_or<-function(case_freq,control_freq,patient_number,gnomAD_number,predict=NA){
