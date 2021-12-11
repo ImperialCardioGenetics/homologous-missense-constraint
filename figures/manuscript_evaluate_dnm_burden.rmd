@@ -1,0 +1,124 @@
+---
+title: "DNV_burden_figure"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(ggplot2)
+mytheme<-theme(panel.background = element_rect(fill = "white",colour = "black",size = 0.5, linetype = "solid"),panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank())
+```
+
+
+## prepare data frames
+
+```{r}
+
+dd_ref <- read.delim("~/pfam/analysis_human_pfam/4_DNV/2020_Kaplanis/dnv_burden/dd_genes_ref.txt", stringsAsFactors=FALSE)
+dd_rmc<-read.delim("~/pfam/analysis_human_pfam/4_DNV/dnv_rates/RMC/dd_genes_output_rmc_percentile_dnv_burden.txt")
+dd_ccr<-read.delim("~/pfam/analysis_human_pfam/4_DNV/dnv_rates/CCR/dd_genes_output_ccr_percentile_dnv_burden.txt")
+dd_hrc<-read.delim("~/pfam/analysis_human_pfam/4_DNV/dnv_rates/HRC/dd_genes_output_hrc_percentile_dnv_burden.txt")
+dd_parazscore<-read.delim("~/pfam/analysis_human_pfam/4_DNV/dnv_rates/parazscore/dd_genes_output_para_percentile_dnv_burden.txt")
+
+dd_hrc_range<-read.delim("~/pfam/analysis_human_pfam/4_DNV/dnv_rates/HRC/dd_genes_output_hrc_range_dnv_burden.txt")
+
+```
+
+## Figure 2d OR plots by HRC range 
+
+```{r}
+#hrc_range
+N=31058
+dd_ref$enr<-dd_ref$n_obs/dd_ref$n_exp
+dd_ref$enr_l<-apply(dd_ref,1,function(x){(poisson.test(as.numeric(x["n_obs"]),N,as.numeric(x["n_exp"])/N)$conf.int[1])*N/(as.numeric(x["n_exp"]))})
+dd_ref$enr_u<-apply(dd_ref,1,function(x){(poisson.test(as.numeric(x["n_obs"]),N,as.numeric(x["n_exp"])/N)$conf.int[2])*N/(as.numeric(x["n_exp"]))})
+
+dd_hrc_range$enr<-dd_hrc_range$n_obs/dd_hrc_range$n_exp
+dd_hrc_range$enr_l<-apply(dd_hrc_range,1,function(x){(poisson.test(as.numeric(x["n_obs"]),N,as.numeric(x["n_exp"])/N)$conf.int[1])*N/(as.numeric(x["n_exp"]))})
+dd_hrc_range$enr_u<-apply(dd_hrc_range,1,function(x){(poisson.test(as.numeric(x["n_obs"]),N,as.numeric(x["n_exp"])/N)$conf.int[2])*N/(as.numeric(x["n_exp"]))})
+levels(dd_hrc_range$range)<-c("0.2-0.4","0.4-0.6","0.6-0.8","0.8-1",">1")
+
+#ORs for loss-of-function variants
+dd_ref[3,]
+
+#ORs for missense variants in protein domains
+dd_hrc_mis_ref<-sum(dd_hrc_range$n_obs)/sum(dd_hrc_range$n_exp)
+poisson.test(sum(dd_hrc_range$n_obs),N,sum(dd_hrc_range$n_exp))$conf.int[1]*N/sum(dd_hrc_range$n_exp)
+poisson.test(sum(dd_hrc_range$n_obs),N,sum(dd_hrc_range$n_exp))$conf.int[2]*N/sum(dd_hrc_range$n_exp)
+
+#ORs for variants with HMC<0.8
+highconstrained<-dd_hrc_range[is.element(dd_hrc_range$range,c("0.2-0.4","0.4-0.6","0.6-0.8")),]
+round(sum(highconstrained$n_obs)/sum(highconstrained$n_exp),2)
+round(poisson.test(sum(highconstrained$n_obs),N,sum(highconstrained$n_exp))$conf.int[1]*N/sum(highconstrained$n_exp),2)
+round(poisson.test(sum(highconstrained$n_obs),N,sum(highconstrained$n_exp))$conf.int[2]*N/sum(highconstrained$n_exp),2)
+
+
+
+ dd_hrc_range_plot<-ggplot(dd_hrc_range, aes(x=range, y=enr)) +geom_point(size=3,color="red")+geom_pointrange(aes(ymin=enr_l, ymax=enr_u,color="red"))+ylab("Damaging De Novo Mutations Burden\n(Observed/Expected) in DD genes")+xlab("Homologous Missense Constraint")+
+  #scale_y_continuous(labels =c())+
+  geom_hline(yintercept = dd_ref[1,"enr"],linetype="dashed",color="darkgrey")+
+    #annotate("text", label = "Syn", x = "0.2-0.4", y = dd_ref[1,"enr"]+0.1, size = 4.5, colour = "darkgrey")+
+  geom_hline(yintercept =dd_ref[2,"enr"],linetype="dashed",color="darkgrey")+
+   geom_hline(yintercept =dd_hrc_mis_ref,linetype="dashed",color="darkgrey")+
+  #  annotate("text", label = "Mis", x = "0.2-0.4", y = dd_ref[2,"enr"]+0.1, size = 4.5, colour = "darkgrey")+
+    geom_hline(yintercept =dd_ref[3,"enr"],linetype="dashed",color="darkgrey")+
+   # annotate("text", label = "PTV", x = "0.2-0.4", y = dd_ref[3,"enr"]+0.1, size = 4.5, colour = "darkgrey")+
+    scale_x_discrete(labels=c(as.character(dd_hrc_range$range)))+
+  theme_classic(base_size = 13)+theme(legend.position = "none")+theme(axis.text.y = element_text(size=13))+theme(axis.text.x = element_text(size=13))
+
+figure_3<-dd_hrc_range_plot
+figure_3
+
+```
+
+
+```{r}
+nondd_hrc_range<-read.delim("~/pfam/analysis_human_pfam/4_DNV/dnv_rates/HRC/nondd_output_hrc_range_dnv_burden.txt")
+#hrc_range
+N=31058
+nondd_hrc_range$enr<-nondd_hrc_range$n_obs/nondd_hrc_range$n_exp
+nondd_hrc_range$enr_l<-apply(nondd_hrc_range,1,function(x){(poisson.test(as.numeric(x["n_obs"]),N,as.numeric(x["n_exp"])/N)$conf.int[1])*N/(as.numeric(x["n_exp"]))})
+nondd_hrc_range$enr_u<-apply(nondd_hrc_range,1,function(x){(poisson.test(as.numeric(x["n_obs"]),N,as.numeric(x["n_exp"])/N)$conf.int[2])*N/(as.numeric(x["n_exp"]))})
+
+levels(nondd_hrc_range$range)<-c("<0.6","0.6-0.8","0.8-1",">1")
+
+
+#ORs for loss-of-function variants
+#nondd_hrc_range[3,]
+nondd_hrc_range
+
+
+#ORs for missense variants in protein domains
+#dd_hrc_mis_ref<-sum(dd_hrc_range$n_obs)/sum(dd_hrc_range$n_exp)
+#poisson.test(sum(dd_hrc_range$n_obs),N,sum(dd_hrc_range$n_exp))$conf.int[1]*N/sum(dd_hrc_range$n_exp)
+#poisson.test(sum(dd_hrc_range$n_obs),N,sum(dd_hrc_range$n_exp))$conf.int[2]*N/sum(dd_hrc_range$n_exp)
+
+#ORs for variants with HMC<0.8
+highconstrained<-nondd_hrc_range[is.element(nondd_hrc_range$range,c("<0.6","0.6-0.8")),]
+sum(highconstrained$n_obs)/sum(highconstrained$n_exp)
+poisson.test(sum(highconstrained$n_obs),N,sum(highconstrained$n_exp))$conf.int[1]*N/sum(highconstrained$n_exp)
+poisson.test(sum(highconstrained$n_obs),N,sum(highconstrained$n_exp))$conf.int[2]*N/sum(highconstrained$n_exp)
+
+
+
+ nondd_hrc_range_plot<-ggplot(nondd_hrc_range, aes(x=range, y=enr)) +geom_point(size=3,color="red")+geom_pointrange(aes(ymin=enr_l, ymax=enr_u,color="red"))+ylab("Damaging De Novo Variants Burden\n(Observed/Expected) in non DD-associated genes")+xlab("Homologous Missense Constraint")+
+  #scale_y_continuous(labels =c())+
+  #geom_hline(yintercept = ,linetype="dashed",color="darkgrey")+
+    #annotate("text", label = "Syn", x = "0.2-0.4", y = nondd_hrc_range[1,"enr"]+0.1, size = 4.5, colour = "darkgrey")+
+  #geom_hline(yintercept =mis_hrc_ref,linetype="dashed",color="darkgrey")+
+   #geom_hline(yintercept =dd_hrc_mis_ref,linetype="dashed",color="darkgrey")+
+  #  annotate("text", label = "Mis", x = "0.2-0.4", y = nondd_hrc_range[2,"enr"]+0.1, size = 4.5, colour = "darkgrey")+
+    #geom_hline(yintercept =nondd_hrc_range[3,"enr"],linetype="dashed",color="darkgrey")+
+   # annotate("text", label = "PTV", x = "0.2-0.4", y = dd_ref[3,"enr"]+0.1, size = 4.5, colour = "darkgrey")+
+    scale_x_discrete(labels=c(as.character(nondd_hrc_range$range)))+
+  theme_classic(base_size = 13)+theme(legend.position = "none")+theme(axis.text.y = element_text(size=13))+theme(axis.text.x = element_text(size=13))
+
+figure_3<-nondd_hrc_range_plot
+figure_3
+```
+
+```{r}
+library(cowplot)
+plot_grid(figure_1,figure_2,figure_3,figure_4,nrow=2,labels = c("a","b","c","d"),rel_widths=c(2,3),label_size = 20)
+```

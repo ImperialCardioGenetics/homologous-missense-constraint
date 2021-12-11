@@ -1,0 +1,332 @@
+---
+title: "Benchmark_clinvar"
+output: html_document
+---
+
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library("ggsci")
+```
+
+## read clinvar variants with HMC scores
+```{r}
+clinvar_hmc <- read.table("~/pfam/analysis_human_pfam/2_clinvar_pfam/data/clinvar_hmc.txt", header=TRUE, quote="", comment.char="", stringsAsFactors=FALSE)
+clinvar_hmc$label<-as.factor(clinvar_hmc$clinvar_label)
+
+```
+
+
+
+
+
+### Read CCR scores
+```{r}
+clinvar_ccr <- read.delim("~/pfam/analysis_human_pfam/2_clinvar_pfam/data/clinvar_ccr.txt", stringsAsFactors=FALSE)
+clinvar_ccr<-subset(clinvar_ccr,!is.na(ccr))
+clinvar_ccr$label<-as.factor(clinvar_ccr$clinvar_label)
+clinvar_ccr$ccr_ad<-100-clinvar_ccr$ccr
+```
+
+### Read ParaZscore
+```{r}
+clinvar_parazscore <- read.delim("~/pfam/analysis_human_pfam/2_clinvar_pfam/data/clinvar_parazscore.txt", stringsAsFactors=FALSE)
+
+clinvar_parazscore$label<-as.factor(clinvar_parazscore$clinvar_label)
+clinvar_parazscore$ad_parazscore<--clinvar_parazscore$parazscore
+
+```
+
+
+### Read RMC file 
+```{r}
+regional_missense_constraint <- read.delim("~/pfam/analysis_human_pfam/5_compare_other/RMC/regional_missense_constraint.tsv", stringsAsFactors=FALSE)
+regional_missense_constraint$strand=ifelse(regional_missense_constraint$genomic_start<regional_missense_constraint$genomic_end,1,-1)
+regional_missense_constraint$cds_start=NA
+regional_missense_constraint$cds_start=ifelse(regional_missense_constraint$strand==-1,regional_missense_constraint$genomic_end,regional_missense_constraint$genomic_start)
+regional_missense_constraint$cds_end=ifelse(regional_missense_constraint$strand==-1,regional_missense_constraint$genomic_start,regional_missense_constraint$genomic_end)
+
+
+match_rmc<-function(chr,pos){
+  
+  row_n<-which(regional_missense_constraint$chr==chr&regional_missense_constraint$cds_start<pos&regional_missense_constraint$cds_end>pos)
+  if(length(row_n)==1){
+  return(regional_missense_constraint[row_n,"obs_exp"])}
+  else if(length(row_n)==0){
+    return(NA)
+  }else if(length(row_n)>1){
+    return(min(regional_missense_constraint[row_n,"obs_exp"]))
+  }
+  
+}
+
+clinvar_hmc$rmc<-unlist(apply(clinvar_hmc,1,function(x){match_rmc(as.character(x[1]),as.numeric(x[2]))}))
+
+#how many of them have RMC scores?
+
+(nrow(clinvar_hmc)-sum(is.na(clinvar_hmc$rmc)))/nrow(clinvar_hmc)
+
+## a big limitation of RMC: only 1/3 of the variants have constraint scores
+
+clinvar_hmc_rmc<-subset(clinvar_hmc,!is.na(rmc))
+```
+
+# Figure 1 - Compare the rate of pathogenic vs benign variants 
+
+```{r}
+source("~/pfam/analysis_human_pfam/2_clinvar_pfam/measure.R")
+range=seq(0.4,0.9,0.1)
+scale=0.1
+first_bin<-enrichment_range(clinvar_hmc,"hmc",0,0.4)
+OR_df<-as.matrix.data.frame(t(sapply(range,function(x){enrichment_range(clinvar_hmc,"hmc",x,x+scale)})))
+OR_df<-rbind(first_bin,OR_df,enrichment_range(clinvar_hmc,"hmc",1,9))
+
+bin<-as.factor(c("<0.4","0.4-0.5","0.5-0.6","0.6-0.7","0.7-0.8","0.8-0.9","0.9-1",">=1"))
+library(ggplot2)
+or_range<-data.frame(constraint=bin,OR=log10(OR_df[,1]),OR_ci_l=log10(OR_df[,2]),OR_ci_u=log10(OR_df[,3]))
+figure_1<-ggplot(or_range, aes(x=factor(constraint, level = bin), y=OR,label=round(OR,1))) +geom_point(size=3,color="red")+geom_pointrange(aes(ymin=OR_ci_l, ymax=OR_ci_u,color="red"))+ylab("Rate ClinVar Pathogenic vs Benign variants")+xlab("Homologous Missense Constraint")+scale_y_continuous(limits=c(-1,3),labels = c(0.1,1,10,100,1000))+scale_x_discrete(breaks=bin)+geom_hline(yintercept = 0,linetype="dashed",color="grey")+theme_classic(base_size = 13)+theme(legend.position="none")
+figure_1
+
+
+## get the P-value
+#enrichment_range(clinvar_hmc,"hmc",0,1,one.side=TRUE)
+print(log10pvalue_riskratio(clinvar_hmc,"hmc",0,0.5,lower.tail = FALSE))
+print(log10pvalue_riskratio(clinvar_hmc,"hmc",0,1,lower.tail = FALSE))
+print(log10pvalue_riskratio(clinvar_hmc,"hmc",1,10,lower.tail = FALSE))
+
+
+
+
+```
+
+
+
+## Figure 3 Panel - Benchmark with other tools 
+## Only use intersected variants that are assessable by all tools
+```{r}
+
+source("~/pfam/analysis_human_pfam/2_clinvar_pfam/measure.R")
+
+overlap<-merge(clinvar_ccr[,c("Uploaded_variation","ccr_ad")],clinvar_hmc_rmc[,c("Uploaded_variation","hmc","rmc","label")],by="Uploaded_variation")
+overlap<-merge(clinvar_parazscore[,c("Uploaded_variation","ad_parazscore")],overlap,by="Uploaded_variation")
+table(overlap$label)
+
+overlap$hmc_percentile<-rank(overlap$hmc)/nrow(overlap)*100
+#quantile<-seq(0,100,5)
+quantile<-c(seq(0,100,10))
+
+overlap$ccr_percentile<-rank(overlap$ccr_ad)/nrow(overlap)*100
+
+
+overlap$rmc_percentile<-rank(overlap$rmc)/nrow(overlap)*100
+
+overlap$para_percentile<-rank(overlap$ad_parazscore)/nrow(overlap)*100
+
+
+```
+
+```{r}
+#recommended threshold
+#odds_ratio(confusion_matrix_range(overlap,"para_percentile",quantile[x],quantile[x+1]))})
+```
+
+## TPR and PPV
+
+```{r}
+source("~/pfam/analysis_human_pfam/2_clinvar_pfam/measure.R")
+range=seq(0.1,1,0.1)
+scale=0.1
+tpr_range<-data.frame(constraint=range,TPR=sapply(range,function(x){tpr(x,clinvar_hmc,"hmc")}))
+
+ppv_range<-data.frame(constraint=range,PPV=sapply(range,function(x){ppv(x,clinvar_hmc,"hmc")}))
+
+fpr_range<-data.frame(constraint=range,FPR=sapply(range,function(x){fpr(x,clinvar_hmc,"hmc")}))
+
+#mcc_range<-data.frame(constraint=range,MCC=sapply(range,function(x){mcc(x,scale,clinvar_hmc,"hmc")}))
+
+
+tpr_p<-ggplot(data=tpr_range, aes(x=constraint, y=TPR)) +
+  geom_bar(stat="identity", fill="steelblue")+
+  theme_minimal()
+
+ppv_p<-ggplot(data=ppv_range, aes(x=constraint, y=PPV)) +
+  geom_bar(stat="identity", fill="steelblue")+
+  theme_minimal()
+
+library(grid)
+library(gridExtra)
+library(ggplot2)
+library(lattice)
+grid.arrange(tpr_p,ppv_p,nrow=1)
+prauc_hmc<-merge(tpr_range,ppv_range,by="constraint")
+prauc_hmc$score="hmc"
+prauc<-rbind(prauc_hmc)
+prauc_p<-ggplot(data=prauc,aes(x=TPR,y=PPV,fill=score,color=score))+geom_line()+geom_point()+theme_bw()
+prauc_p
+
+#grid.arrange(fpr_p,mcc_p,nrow=1)
+
+
+## check RMC and CCR
+range=c(0,seq(5,100,5))
+tpr_range<-data.frame(constraint=range,TPR=sapply(range,function(x){tpr(x,overlap,"rmc_percentile")}))
+
+ppv_range<-data.frame(constraint=range,PPV=sapply(range,function(x){ppv(x,overlap,"rmc_percentile")}))
+prauc_hmc<-merge(tpr_range,ppv_range,by="constraint")
+prauc_hmc$score="hmc"
+prauc<-rbind(prauc_hmc)
+prauc_p<-ggplot(data=prauc,aes(x=TPR,y=PPV,fill=score,color=score))+geom_line()+geom_point()+theme_bw()
+prauc_p
+```
+
+
+Figure 3. Panel a- PRAUC
+```{r}
+source("~/pfam/analysis_human_pfam/2_clinvar_pfam/measure.R")
+### Add recommended thresholds
+hmc_rth<-max(subset(overlap,hmc<=0.8)$hmc_percentile)
+hmc_nomi_rth<-max(subset(overlap,hmc<=1)$hmc_percentile)
+ccr_rth<-max(subset(overlap,ccr_ad<=5)$ccr_percentile)
+rmc_rth<-max(subset(overlap,rmc<=0.6)$rmc_percentile)
+para_rth<-max(subset(overlap,ad_parazscore<=0)$para_percentile)
+hmc_rth
+hmc_nomi_rth
+ccr_rth
+rmc_rth
+para_rth
+
+hmc_rp<-c(tpr(hmc_rth,overlap,"hmc_percentile"),ppv(hmc_rth,overlap,"hmc_percentile"))
+hmc_nomi_rp<-c(tpr(hmc_nomi_rth,overlap,"hmc_percentile"),ppv(hmc_nomi_rth,overlap,"hmc_percentile"))
+ccr_rp<-c(tpr(ccr_rth,overlap,"ccr_percentile"),ppv(ccr_rth,overlap,"ccr_percentile"))
+rmc_rp<-c(tpr(rmc_rth,overlap,"rmc_percentile"),ppv(rmc_rth,overlap,"rmc_percentile"))
+para_rp<-c(tpr(para_rth,overlap,"para_percentile"),ppv(para_rth,overlap,"para_percentile"))
+
+
+
+rp<-rbind(hmc_rp,hmc_nomi_rp,ccr_rp,rmc_rp,para_rp)
+rp<-as.data.frame(rp)
+colnames(rp)<-c("TPR","PPV")
+rp$score<-c("HMC","HMC","CCR","RMC","para_zscore")
+rp
+range=c(seq(5,100,5),hmc_nomi_rth)
+get_prauc_df<-function(df,score_name,range){
+  tpr_range<-data.frame(constraint=range,TPR=sapply(range,function(x){tpr(x,df,score_name)}))
+  ppv_range<-data.frame(constraint=range,PPV=sapply(range,function(x){ppv(x,df,score_name)}))
+  prauc<-merge(tpr_range,ppv_range,by="constraint")
+  prauc$score=score_name
+  return(prauc)
+}
+
+prauc_all<-rbind(get_prauc_df(overlap,"hmc_percentile",c(range,hmc_rth)),get_prauc_df(overlap,"ccr_percentile",c(range,ccr_rth)),get_prauc_df(overlap,"rmc_percentile",c(range,rmc_rth)),get_prauc_df(overlap,"para_percentile",c(range,para_rth)))
+
+prauc_all$score<-as.factor(prauc_all$score)
+prauc_all$score<-factor(prauc_all$score,levels =c("hmc_percentile","ccr_percentile","rmc_percentile","para_percentile"))
+library(plyr)
+prauc_all$score<-mapvalues(prauc_all$score,from=unique(prauc_all$score),to=c("HMC","CCR","RMC","para_zscore"))
+
+
+
+
+
+
+#only shows the valid part of HMC
+unconstraint_HMC<-subset(prauc_all,score=="HMC"&constraint>=hmc_nomi_rth)
+prauc_all_constraint_HMC<-subset(prauc_all,(score=="HMC"&constraint<=hmc_nomi_rth)|score!="HMC")
+
+library(ggrepel)
+prauc_p<-ggplot(data=prauc_all_constraint_HMC,aes(x=TPR,y=PPV,fill=score,color=score))+geom_line()+geom_point(size=1)+theme_classic(base_size =14)+ylab("Precision")+xlab("True Positive Rate")+geom_point(data=rp, 
+             aes(x=TPR,y=PPV),
+             size=3)+scale_color_npg()+geom_line(aes(x=TPR, y=PPV),data=unconstraint_HMC, colour="#E64B35B2",alpha=0.2)
+figure_3<-prauc_p
+figure_3
+
+
+```
+
+
+
+
+
+
+
+# Compare with existing meta-learners
+```{r}
+clinvar_hmc_vep<-read.csv("~/pfam/analysis_human_pfam/2_clinvar_pfam/data/clinvar_hmc_vep_scores.txt",header=T)
+
+table(clinvar_hmc_vep$label)
+quantile<-seq(0,100,5)
+clinvar_hmc_vep$hmc_percentile<-rank(clinvar_hmc_vep$hmc)/nrow(clinvar_hmc_vep)*100
+clinvar_hmc_vep$mcap_ad<-1-clinvar_hmc_vep$M.CAP_score
+clinvar_hmc_vep$mcap_percentile<-rank(clinvar_hmc_vep$mcap_ad)/nrow(clinvar_hmc_vep)*100
+clinvar_hmc_vep$revel_percentile<-rank(1-clinvar_hmc_vep$REVEL_score)/nrow(clinvar_hmc_vep)*100
+clinvar_hmc_vep$primateai_percentile<-rank(1-clinvar_hmc_vep$PrimateAI_score)/nrow(clinvar_hmc_vep)*100
+clinvar_hmc_vep$cadd_percentile<-rank(-clinvar_hmc_vep$CADD_RAW)/nrow(clinvar_hmc_vep)*100
+clinvar_hmc_vep$mpc_percentile<-rank(-clinvar_hmc_vep$MPC)/nrow(clinvar_hmc_vep)*100
+
+```
+
+#PRAUC
+
+```{r}
+source("~/pfam/analysis_human_pfam/2_clinvar_pfam/measure.R")
+
+hmc_rth<-max(subset(clinvar_hmc_vep,hmc<=0.8)$hmc_percentile)
+hmc_nomi_rth<-max(subset(clinvar_hmc_vep,hmc<=1)$hmc_percentile)
+mcap_rth<-max(subset(clinvar_hmc_vep,M.CAP_score>=0.025)$mcap_percentile)
+revel_rth<-max(subset(clinvar_hmc_vep,REVEL_score>=0.5)$revel_percentile)
+mpc_rth<-max(subset(clinvar_hmc_vep,MPC>=2)$mpc_percentile)
+
+hmc_rth
+hmc_nomi_rth
+mcap_rth
+revel_rth
+mpc_rth
+
+hmc_rp<-c(tpr(hmc_rth,clinvar_hmc_vep,"hmc_percentile"),ppv(hmc_rth,clinvar_hmc_vep,"hmc_percentile"))
+hmc_rp
+hmc_nomi_rp<-c(tpr(hmc_nomi_rth,clinvar_hmc_vep,"hmc_percentile"),ppv(hmc_nomi_rth,clinvar_hmc_vep,"hmc_percentile"))
+hmc_nomi_rp
+mcap_rp<-c(tpr(mcap_rth,clinvar_hmc_vep,"mcap_percentile"),ppv(mcap_rth,clinvar_hmc_vep,"mcap_percentile"))
+mcap_rp
+revel_rp<-c(tpr(revel_rth,clinvar_hmc_vep,"revel_percentile"),ppv(revel_rth,clinvar_hmc_vep,"revel_percentile"))
+revel_rp
+mpc_rp<-c(tpr(mpc_rth,clinvar_hmc_vep,"mpc_percentile"),ppv(mpc_rth,clinvar_hmc_vep,"mpc_percentile"))
+mpc_rp
+
+
+
+rp<-rbind(hmc_rp,hmc_nomi_rp,mcap_rp,revel_rp,mpc_rp)
+rp<-as.data.frame(rp)
+colnames(rp)<-c("TPR","PPV")
+rp$score<-c("HMC","HMC","M-CAP","REVEL","MPC")
+rp
+
+range=c(seq(5,100,5),hmc_nomi_rth,hmc_rth)
+get_prauc_df<-function(df,score_name,range){
+  tpr_range<-data.frame(constraint=range,TPR=sapply(range,function(x){tpr(x,df,score_name)}))
+  ppv_range<-data.frame(constraint=range,PPV=sapply(range,function(x){ppv(x,df,score_name)}))
+  prauc<-merge(tpr_range,ppv_range,by="constraint")
+  prauc$score=score_name
+  return(prauc)
+}
+
+prauc_all<-rbind(get_prauc_df(clinvar_hmc_vep,"hmc_percentile",range),get_prauc_df(clinvar_hmc_vep,"mcap_percentile",range),get_prauc_df(clinvar_hmc_vep,"revel_percentile",range),get_prauc_df(clinvar_hmc_vep,"mpc_percentile",range),get_prauc_df(clinvar_hmc_vep,"cadd_percentile",range))
+
+prauc_all$score<-as.factor(prauc_all$score)
+prauc_all$score<-factor(prauc_all$score,levels =c("hmc_percentile","mcap_percentile","revel_percentile","mpc_percentile","cadd_percentile"))
+library(plyr)
+prauc_all$score<-mapvalues(prauc_all$score,from=unique(prauc_all$score),to=c("HMC","M-CAP","REVEL","MPC","CADD"))
+#auc_all$score<-mapvalues(auc_all$score, from = c("hmc","k1_hmc", "k3_hmc","k5_hmc","pfam_c","ccr_ad","oe_mis_upper","rmc"), to = c("hmc", "hmc_1mer","hmc_3mer","hmc_5mer","domain_constraint","CCR","MOEUF","Regional_missense_constraint"))
+
+## rename
+
+prauc_all_constraintHMC<-subset(prauc_all,(score=="HMC"&constraint<=hmc_nomi_rth)|(score!="HMC"))
+prauc_all_unconstraint_HMC<-subset(prauc_all,score=="HMC"&constraint>=hmc_nomi_rth)
+prauc_p<-ggplot(data=prauc_all_constraintHMC,aes(x=TPR,y=PPV,fill=score,color=score))+geom_line()+geom_point()+theme_classic(base_size =14)+ylab("Precision")+xlab("True Positive Rate")+
+  geom_point(data=rp, aes(x=TPR,y=PPV),size=3)+scale_color_npg()+
+  geom_line(aes(x=TPR, y=PPV, group=2), data=prauc_all_unconstraint_HMC, colour="#E64B35B2",alpha=0.1) 
+figure_clinvar_prauc<-prauc_p
+figure_clinvar_prauc
+
+```

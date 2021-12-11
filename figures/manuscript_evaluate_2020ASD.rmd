@@ -1,0 +1,72 @@
+---
+title: "manuscript_DNV_evaluation"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Read file
+```{r input}
+mis_dnv_hmc<-read.delim("/rds/general/user/xzhang13/home/pfam/manuscript/data/mis_dnv_hmc_2020ASD.txt",stringsAsFactors = FALSE)
+
+mis_dnv_hmc$label<-ifelse(mis_dnv_hmc$disease!="control",1,0)
+load("~/pfam/gnomAD_v2_exome_observed/gnomad_all_chr_mis.RData")
+mis_dnv_hmc$gnomad<-ifelse(is.element(mis_dnv_hmc$Uploaded_variation,gnomad_mis),1,0)
+table(mis_dnv_hmc$gnomad)
+table(mis_dnv_hmc$label)
+
+colnames(mis_dnv_hmc)[6]<-"hmc"
+
+```
+
+
+## Rate of disruptive de novo variants in case to control - exclude gnomAD variants - Figure 2b
+```{r}
+source("~/pfam/analysis_human_pfam/2_clinvar_pfam/measure.R")
+
+range=seq(0.1,2,0.05)
+scale=0.1
+ndd_data<-subset(mis_dnv_hmc,disease!="asd")
+ndd_data_nognomad<-subset(ndd_data,gnomad==0)
+tpr_range<-data.frame(constraint=range,rate=as.numeric(sapply(range,function(x){tpr(x,ndd_data_nognomad[ndd_data_nognomad$disease=="ndd",],"hmc")})),Cohort="NDD")
+fpr_range<-data.frame(constraint=range,rate=as.numeric(sapply(range,function(x){fpr(x,ndd_data_nognomad,"hmc")})),Cohort="Unaffected\ncontrol")
+tpr_fpr<-rbind(tpr_range,fpr_range)
+
+figure_1<-ggplot(tpr_fpr, aes(x=constraint, y=rate,fill=Cohort,color=Cohort)) +geom_line()+geom_vline(xintercept = 1,color="black",linetype="dashed")+geom_point()+ylab("Cumulative rate of \n constrained missense DNVs")+xlab("Homologous Missense Constraint")+scale_y_continuous(breaks=seq(0,2,0.2))+theme_classic(base_size=14)
+figure_1
+```
+
+
+## Figure 2c - ORs of hmc with DNVs in NDD cases vs controls (excluding gnomAD variants)
+```{r}
+#use for manuscripts
+range=seq(0.6,0.8,0.2)
+scale=0.2
+ndd_data<-subset(mis_dnv_hmc,disease!="asd")
+ndd_data_nognomad<-subset(ndd_data,gnomad==0)
+#first_bin<-odds_ratio(confusion_matrix_range(ndd_data_nognomad,"hmc",0,0.6))
+first_bin<-enrichment_range(ndd_data_nognomad,"hmc",0,0.6)
+OR_df<-as.matrix.data.frame(t(sapply(range,function(x){enrichment_range(ndd_data_nognomad,"hmc",x,x+scale)})))
+OR_df<-rbind(first_bin,OR_df,enrichment_range(ndd_data_nognomad,"hmc",1,9))
+
+bin<-as.factor(c("<0.6","0.6-0.8","0.8-1",">=1"))
+exp_10 <- function(x) {
+  parse(text=paste("10^", x))
+}
+
+#or_range<-data.frame(constraint=bin,OR=OR_df[,1],OR_ci_l=OR_df[,2],OR_ci_u=OR_df[,3])
+or_range<-data.frame(constraint=bin,OR=log10(OR_df[,1]),OR_ci_l=log10(OR_df[,2]),OR_ci_u=log10(OR_df[,3]))
+figure_2<-ggplot(or_range, aes(x=factor(constraint, level = bin), y=OR,label=round(OR,1))) +geom_point(size=3,color="red")+geom_pointrange(aes(ymin=OR_ci_l, ymax=OR_ci_u,color="red"))+ylab("OR")+xlab("Homologous Missense Constraint")+scale_x_discrete(breaks=bin)+scale_y_continuous(breaks = c(-0.5,0,0.5,1),labels=exp_10,limits=c(-0.5,1))+
+  #scale_y_continuous(limits=c(0.1,10))+
+  #scale_y_continuous(labels=exp_10)+
+  #scale_y_continuous(labels = c("10^(-0.5)","1","10^(0.5)","10","10^(1.5)","100"))+
+  geom_hline(yintercept = 0,linetype="dashed",color="black")+theme_classic(base_size = 14)+theme(legend.position = "none") +ylab("Rate of DNVs in NDD cases vs controls")
+figure_2
+
+
+#under 0.8 
+enrichment_range(ndd_data_nognomad,"hmc",0,0.8)
+
+```
