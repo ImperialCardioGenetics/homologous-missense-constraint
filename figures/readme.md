@@ -8,6 +8,10 @@ Figure 2b-c: ```manuscript_evaluate_2020ASD.Rmd```
 
 Figure 2d: ```manuscript_evaluate_dnv_burden.Rmd```
 
+Figure 2e: ```manuscript_share_or.Rmd```
+
+Figure 2f: ```manuscript_evaluate_mave.Rmd```
+
 Figure 3a-b: ```manuscript_clinvar_benchmark.Rmd```
 
 
