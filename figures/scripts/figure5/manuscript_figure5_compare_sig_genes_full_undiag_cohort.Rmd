@@ -1,0 +1,218 @@
+---
+title: "compare_sig_genes_full_undiag_20211207"
+author: "Xiaolei"
+date: "07/12/2021"
+output: html_document
+---
+---
+title: "Figure_DeNovoWEST_upgraded_full_undiag"
+author: "Xiaolei"
+date: "17/05/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Some useful definitions
+```{r}
+ptv<-c("frameshift_variant","inframe_deletion","inframe_insertion","splice_acceptor_variant","splice_donor_variant","stop_gained","stop_lost")
+```
+
+## Methods
+To demonstrate the utility of applying HMC in gene discovery, I performed a test in DD cohort to investigate whether adding HMC to score missense variants could identify more DD genes. 
+Dataset: DD full cohort from 2020 Kaplanis Nature paper
+
+## Find the candidate novel genes
+
+```{r}
+
+## downloaded from the github repository of DeNovoWEST https://github.com/HurlesGroupSanger/DeNovoWEST/tree/master/input
+original_denovowest <- read.delim("~/Desktop/OneDrive/OneDrive - Imperial College London/domain_constraint/2020_Kaplanis/DeNovoWEST/input/extended_denovoWEST_results.tab", stringsAsFactors=FALSE)
+
+# the results of combining enrichment test and clustering test using 31K full cohort
+combine_full_20211203 <- read.delim("~/Desktop/OneDrive/OneDrive - Imperial College London/domain_constraint/2020_Kaplanis/20211201/output/full/combine_full_20211203.tab",stringsAsFactors=FALSE)
+
+
+
+
+full_compare_gene<-merge(original_denovowest[,c("symbol","denovoWEST_p_full")],combine_full_20211203[,c("symbol","min_p")],by="symbol")
+colnames(full_compare_gene)[2:3]<-c("original","update")
+ngenes <- 18762
+th <- 0.025/ngenes
+
+#number of genes that are significant in update test
+
+sum(combine_full_20211203$min_p<th)
+#sum(full_combined_original$min_p<th)
+library(ggplot2)
+
+ggplot(full_compare_gene,aes(x=-log10(original),y=-log10(update)))+geom_point()+
+  geom_hline(yintercept = -log10(th), linetype = "dashed",color = "gray43") +
+  geom_vline(xintercept = -log10(th),linetype = "dashed",color = "gray43") 
+
+```
+
+
+
+```{r}
+
+#know_gene<-subset(original_denovowest,diag_group=="consensus")[,'symbol']
+
+full_sig_update<-subset(full_compare_gene,update<th)[,"symbol"]
+full_sig_original<-subset(full_compare_gene,original<th)[,"symbol"]
+
+full_cand_gene<-setdiff(full_sig_update,full_sig_original)
+#novel_gene<-setdiff(cand_gene,know_gene)
+full_novel_gene_pvalue<-subset(full_compare_gene,is.element(symbol,full_cand_gene))[,c("symbol","original","update")]
+
+#The comparison of number of missense variants vs PTVs for these novel genes
+full_all_wweights_update <- read.delim("/Users/xzhang13/Desktop/OneDrive/OneDrive - Imperial College London/domain_constraint/2020_Kaplanis/20211201/input/update_denovowest_20211201/all_dnv_update_31KDD.txt")
+full_novel_obs<-subset(full_all_wweights_update,is.element(symbol,full_cand_gene))
+
+
+library(dplyr)
+full_novel_obs$csq=full_novel_obs$consequence
+full_novel_obs$csq<-ifelse(is.element(full_novel_obs$consequence,ptv),"PTV",as.character(full_novel_obs$csq))
+full_count_csq<-full_novel_obs %>% count(symbol,csq)
+colnames(full_count_csq)
+
+library(reshape2)
+full_wide_count_csq<-dcast(full_count_csq,symbol~csq,value.var = "n")
+
+full_wide_count_csq[is.na(full_wide_count_csq)]=0
+
+full_novel_obs_HMC<-full_novel_obs[,c("symbol","hrc_constrained")]
+colnames(full_novel_obs_HMC)[2]<-"HMC_constrained"
+full_count_novel_HMC<-full_novel_obs_HMC%>%count(symbol,HMC_constrained)
+full_wide_count_HMC<-dcast(subset(full_count_novel_HMC,HMC_constrained==TRUE),symbol~HMC_constrained,value.var = "n")
+colnames(full_wide_count_HMC)[2]<-c("HMC_constrained")
+full_count_novel_obs<-merge(full_wide_count_csq,full_wide_count_HMC,by="symbol")
+full_count_novel_obs<-merge(full_count_novel_obs,full_novel_gene_pvalue[,c("symbol","update","original")])
+full_count_novel_obs$lg10p<--log10(full_count_novel_obs$update)
+full_count_novel_obs$diag_gene<-c("Candidate Novel","DDG2P","DDG2P","Candidate Novel","DDG2P","Candidate Novel","DDG2P")
+
+ltsize=13
+atsize = 13
+full_count_novel_obs$print_symbol=paste("italic('",full_count_novel_obs$symbol,"')",sep="")
+library(ggrepel)
+
+integer_breaks <- function(n = 5, ...) {
+fxn <- function(x) {
+breaks <- floor(pretty(x, n, ...))
+names(breaks) <- attr(breaks, "labels")
+breaks
+}
+return(fxn)
+}
+
+p1<-ggplot(full_count_novel_obs,aes(x=PTV,y = HMC_constrained,label=print_symbol,color=diag_gene)) +
+  geom_point(alpha = 0.5,aes(size = lg10p)) +
+ theme_classic()+
+  geom_text_repel(parse=TRUE)+
+  #geom_label_repel(aes(label = symbol),point.padding = 0.5,size =3.0,show.legend = F) +
+ ylab("Number of \n HMC constrained missense DNMs ") + xlab("Number of PTV DNMs")+ scale_y_continuous(breaks = integer_breaks())+scale_x_continuous(breaks = integer_breaks())+ylim(-1,8)+xlim(-1,8)+
+  #labs(colour = "min p:",size = "-log10(p-value)") +
+ # scale_x_continuous(breaks=c(-2,0,2,4,6,8))+
+  geom_abline(intercept=0,slope = 1,color="grey",linetype="dashed", size=1.5)+
+  theme(axis.text=element_text(size=atsize),
+        axis.title=element_text(size=ltsize))+labs(title="Candidate novel DD genes identified in the full cohort of 31K DD trios")
+p1$labels$size<-expression(paste("-log"[10],"(P-value)"))
+p1$labels$colour<-"Diagnostic genes"
+p1
+```
+
+```{r}
+combine_undiag_20211207 <- read.delim("~/Desktop/OneDrive/OneDrive - Imperial College London/domain_constraint/2020_Kaplanis/20211201/output/undiag_20211205/combine_undiag_20211207.tab", stringsAsFactors=FALSE)
+
+ngenes <- 18762
+th <- 0.025/ngenes
+
+sum(original_denovowest$denovoWEST_p_ud<th,na.rm=TRUE)
+undiag_pub_sig<-subset(original_denovowest,denovoWEST_p_ud<th)
+table(undiag_pub_sig$diag_group)
+
+sum(combine_undiag_20211207$min_p<th,na.rm=TRUE)
+undiag_new_sig<-subset(combine_undiag_20211207,min_p<th)
+
+
+undiag_compare_gene<-merge(original_denovowest[,c("symbol","denovoWEST_p_ud")],combine_undiag_20211207[,c("symbol","min_p")],by="symbol")
+colnames(undiag_compare_gene)[2:3]<-c("original","update")
+ngenes <- 18762
+th <- 0.025/ngenes
+
+#number of genes that are significant in update test
+
+
+```
+
+
+
+```{r}
+
+undiag_sig_update<-subset(undiag_compare_gene,update<th)[,"symbol"]
+undiag_sig_original<-subset(undiag_compare_gene,original<th)[,"symbol"]
+
+undiag_cand_gene<-setdiff(undiag_sig_update,undiag_sig_original)
+#undiag_novel_gene<-setdiff(cand_gene,know_gene)
+undiag_novel_gene_pvalue<-subset(undiag_compare_gene,is.element(symbol,undiag_cand_gene))[,c("symbol","update","original")]
+
+#The comparison of number of missense variants vs PTVs for these novel genes
+undiag_all_wweights_update <- read.delim("/Users/xzhang13/Desktop/OneDrive/OneDrive - Imperial College London/domain_constraint/2020_Kaplanis/20211201/input/update_denovowest_20211201/undiag_dnv_24KDD_20211205.txt")
+undiag_novel_obs<-subset(undiag_all_wweights_update,is.element(symbol,undiag_cand_gene))
+
+
+
+library(dplyr)
+undiag_novel_obs$csq=undiag_novel_obs$consequence
+undiag_novel_obs$csq<-ifelse(is.element(undiag_novel_obs$consequence,ptv),"PTV",as.character(undiag_novel_obs$csq))
+undiag_count_csq<-undiag_novel_obs %>% count(symbol,csq)
+colnames(undiag_count_csq)
+
+library(reshape2)
+undiag_wide_count_csq<-dcast(undiag_count_csq,symbol~csq,value.var = "n")
+
+undiag_wide_count_csq[is.na(undiag_wide_count_csq)]=0
+
+undiag_novel_obs_HMC<-undiag_novel_obs[,c("symbol","hrc_constrained")]
+colnames(undiag_novel_obs_HMC)[2]<-"HMC_constrained"
+undiag_count_novel_HMC<-undiag_novel_obs_HMC%>%count(symbol,HMC_constrained)
+
+undiag_wide_count_HMC<-dcast(subset(undiag_count_novel_HMC,HMC_constrained==TRUE),symbol~HMC_constrained,value.var = "n")
+#undiag_wide_count_HMC<-rbind(undiag_wide_count_HMC,c("SETD1B","0"))
+colnames(undiag_wide_count_HMC)[2]<-c("HMC_constrained")
+undiag_count_novel_obs<-merge(undiag_wide_count_csq,undiag_wide_count_HMC,by="symbol")
+undiag_count_novel_obs<-merge(undiag_count_novel_obs,undiag_novel_gene_pvalue[,c("symbol","update","original")])
+undiag_count_novel_obs$lg10p<--log10(undiag_count_novel_obs$update)
+
+
+undiag_count_novel_obs$diag_gene=c("Candidate Novel","DDG2P","DDG2P","Candidate Novel")
+undiag_count_novel_obs$HMC_constrained<-as.numeric(undiag_count_novel_obs$HMC_constrained)
+#subset(undiag_count_novel_obs,is.element(symbol,c("BMPR2","SBK3","GABBR2","PRKD1","RYR2","SETD1B","VPS4A")))
+
+undiag_count_novel_obs$print_symbol=paste("italic('",undiag_count_novel_obs$symbol,"')",sep="")
+
+undiag_count_novel_obs<-subset(undiag_count_novel_obs,HMC_constrained!=0)
+
+ltsize=13
+atsize = 13
+library(ggplot2)
+library(ggrepel)
+p2<-ggplot(undiag_count_novel_obs,aes(x=PTV,y = HMC_constrained,label=print_symbol,color=diag_gene)) +
+  geom_point(alpha = 0.5,aes(size = lg10p)) +
+ theme_classic()+
+  geom_text_repel(parse=TRUE)+
+  #geom_label_repel(aes(label = symbol),point.padding = 0.5,size =3.0,show.legend = F) +
+ ylab("Number of \n HMC constrained missense DNMs ") + xlab("Number of PTV DNMs")+ 
+  #labs(colour = "min p:",size = "-log10(p-value)") +
+  scale_y_continuous(breaks = integer_breaks())+scale_x_continuous(breaks = integer_breaks())+ylim(-1,6)+xlim(-1,6)+
+  geom_abline(intercept=0,slope = 1,color="grey",linetype="dashed", size=1.5)+
+  theme(axis.text=element_text(size=atsize),
+        axis.title=element_text(size=ltsize))+ 
+  #theme(legend.position = "none")+
+  labs(title="Candidate novel DD genes identified in 24K undiagnosed DD trios")
+p2$labels$size<-expression(paste("-log"[10],"(P-value)"))
+p2$labels$colour<-"Diagnostic genes"
+p2
+```
