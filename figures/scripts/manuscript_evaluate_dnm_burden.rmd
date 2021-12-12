@@ -16,11 +16,6 @@ mytheme<-theme(panel.background = element_rect(fill = "white",colour = "black",s
 ```{r}
 
 dd_ref <- read.delim("~/pfam/analysis_human_pfam/4_DNV/2020_Kaplanis/dnv_burden/dd_genes_ref.txt", stringsAsFactors=FALSE)
-dd_rmc<-read.delim("~/pfam/analysis_human_pfam/4_DNV/dnv_rates/RMC/dd_genes_output_rmc_percentile_dnv_burden.txt")
-dd_ccr<-read.delim("~/pfam/analysis_human_pfam/4_DNV/dnv_rates/CCR/dd_genes_output_ccr_percentile_dnv_burden.txt")
-dd_hrc<-read.delim("~/pfam/analysis_human_pfam/4_DNV/dnv_rates/HRC/dd_genes_output_hrc_percentile_dnv_burden.txt")
-dd_parazscore<-read.delim("~/pfam/analysis_human_pfam/4_DNV/dnv_rates/parazscore/dd_genes_output_para_percentile_dnv_burden.txt")
-
 dd_hrc_range<-read.delim("~/pfam/analysis_human_pfam/4_DNV/dnv_rates/HRC/dd_genes_output_hrc_range_dnv_burden.txt")
 
 ```
