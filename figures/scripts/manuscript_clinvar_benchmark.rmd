@@ -41,6 +41,8 @@ clinvar_parazscore$ad_parazscore<--clinvar_parazscore$parazscore
 
 ### Read RMC file 
 ```{r}
+## download from https://storage.googleapis.com/gcp-public-data--gnomad/legacy/exac_browser/regional_missense_constraint.ts
+
 regional_missense_constraint <- read.delim("~/pfam/analysis_human_pfam/5_compare_other/RMC/regional_missense_constraint.tsv", stringsAsFactors=FALSE)
 regional_missense_constraint$strand=ifelse(regional_missense_constraint$genomic_start<regional_missense_constraint$genomic_end,1,-1)
 regional_missense_constraint$cds_start=NA
