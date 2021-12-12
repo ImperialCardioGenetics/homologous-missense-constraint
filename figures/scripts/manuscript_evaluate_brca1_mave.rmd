@@ -1,0 +1,60 @@
+---
+title: "manuscript_evaluate_brca1_mave"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+## Input
+
+```{r include=FALSE}
+library(readxl)
+setwd("/rds/general/user/xzhang13/home/pfam/analysis_human_pfam/9_mavedb/brca1")
+#download from BRCA1 paper supp.
+mave_brca1<-read_excel("ST1_41586_2018_461_MOESM3_ESM.xlsx")
+hmc_brca1 <- read.delim("~/pfam/analysis_human_pfam/9_mavedb/brca1/brca1_hmc.txt", header=TRUE)
+
+```
+
+
+
+```{r}
+##todo here!! 20211211
+brca1_mave_hmc<-merge(mave_brca1,hmc_brca1,by.x=c("chromosome","position (hg19)"),by.y=c("chrom","end"))
+
+2267/3893
+
+
+
+#remove duplicated ones
+
+brca1_mave_hmc<-brca1_mave_hmc[order(brca1_mave_hmc$transcript_variant,brca1_mave_hmc$hmc),]
+brca1_mave_hmc_uniq<-brca1_mave_hmc[which(duplicated(brca1_mave_hmc$transcript_variant)==FALSE),]
+
+
+#stacked percentage
+
+
+library(dplyr)
+library(ggplot2)
+brca1_mave_hmc_uniq<- brca1_mave_hmc_uniq %>% 
+       mutate(hmc = case_when((hmc<0.6) ~ "0-0.6",
+                                         (hmc<0.8) ~ "0.6-0.8",
+                                         (hmc<1) ~ "0.8-1",
+                                         (hmc>=1) ~ ">=1")) 
+mave_hmc_bin<-as.data.frame(table(brca1_mave_hmc_uniq$func.class,brca1_mave_hmc_uniq$hmc))
+colnames(mave_hmc_bin)<-c("Functional Class","Homologous Missense Constraint","Count")
+mave_hmc_bin$`Homologous Missense Constraint` <- factor(mave_hmc_bin$`Homologous Missense Constraint`,
+                levels = c("0-0.6", "0.6-0.8", "0.8-1",">=1"))
+figure<-ggplot(mave_hmc_bin, aes(fill=`Functional Class`, y=Count, x=`Homologous Missense Constraint`)) + 
+    geom_bar(position="fill", stat="identity")+scale_y_continuous(labels = scales::percent) +
+ scale_fill_brewer(palette = "BuPu")+ylab("Proportion of functinally\nclassified BRCA1 variants")+theme_classic(base_size = 13)+theme_bw()
+
+figure
+table(brca1_mave_hmc_uniq$hmc)/nrow(brca1_mave_hmc_uniq)
+
+
+```
