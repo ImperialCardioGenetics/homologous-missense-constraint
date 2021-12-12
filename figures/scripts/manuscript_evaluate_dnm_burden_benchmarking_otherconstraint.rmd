@@ -1,0 +1,76 @@
+---
+title: "manuscript_evaluate_dnv_burden_compare"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(ggplot2)
+mytheme<-theme(panel.background = element_rect(fill = "white",colour = "black",size = 0.5, linetype = "solid"),panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank())
+```
+
+## prepare data frames
+
+```{r}
+dd_ref <- read.delim("~/pfam/analysis_human_pfam/4_DNV/2020_Kaplanis/dnv_burden/dd_genes_ref.txt", stringsAsFactors=FALSE)
+dd_rmc<-read.delim("~/pfam/analysis_human_pfam/4_DNV/dnv_rates/RMC/dd_genes_output_rmc_percentile_dnv_burden_overlap.txt")
+dd_ccr<-read.delim("~/pfam/analysis_human_pfam/4_DNV/dnv_rates/CCR/dd_genes_output_ccr_percentile_dnv_burden_overlap.txt")
+dd_hmc<-read.delim("~/pfam/analysis_human_pfam/4_DNV/dnv_rates/HRC/dd_genes_output_hrc_percentile_dnv_burden_overlap.txt")
+dd_parazscore<-read.delim("~/pfam/analysis_human_pfam/4_DNV/dnv_rates/parazscore/dd_genes_output_para_percentile_dnv_burden_overlap.txt")
+
+
+```
+
+## Figure 2
+```{r}
+
+dd_hmc$score="HMC"
+dd_rmc$score="RMC"
+dd_ccr$score="CCR"
+dd_parazscore$score="para_zscore"
+col<-c("range","n_obs","n_exp","score")
+
+score_pct<-rbind(dd_hmc[,col],dd_ccr[,col],dd_rmc[,col],dd_parazscore[,col])
+score_pct$enr<-score_pct$n_obs/score_pct$n_exp
+
+score_pct$range<-factor(score_pct$range,levels=c("0-5","5-10","10-15","15-20","20-25","25-30","30-100"))
+
+dd_ref$enr<-dd_ref$n_obs/dd_ref$n_exp
+ann_text <- data.frame(x = rep("0-5",3),y =dd_ref[,"enr"] ,lab = c("Syn","Mis","PTV"),
+                       range = factor("0-5",levels = levels(score_pct$range)))
+ann_text <- data.frame(label = c("Syn",rep("",6)),
+                       range = levels(score_pct$range))
+#p + geom_text(data = ann_text,label = "Text")
+# the CI of burden is calculated as obs CI/expected
+#Obs CI: exact poisson confidence interval: https://ms.mcmaster.ca/peter/s743/poissonalpha.html
+## [qchisq(0.025,2*obs)/2,qchisq(0.975,2*(obs+1))/2]
+
+score_pct$enr_l<-apply(score_pct,1,function(x){(poisson.test(as.numeric(x["n_obs"]),conf.level = 0.95)$conf.int[1])/(as.numeric(x["n_exp"]))})
+score_pct$enr_u<-apply(score_pct,1,function(x){(poisson.test(as.numeric(x["n_obs"]))$conf.int[2])/(as.numeric(x["n_exp"]))})
+score_pct$range
+score_pct$score<-factor(score_pct$score,level=c("HMC","CCR","RMC","para_zscore"))
+
+ pct_plot<-ggplot(score_pct, aes(x=score, y=enr,color=score)) +geom_pointrange(aes(ymin=enr_l, ymax=enr_u),position = position_dodge(0.25),size=0.35)+facet_wrap( ~ range, nrow = 1,strip.position="bottom") + ylab("Damaging De Novo Variants Burden\n(Observed/Expected)")+xlab("Top x percentile (%)")+theme(legend.position="none")+
+  #scale_y_continuous(labels =c())+
+  geom_hline(yintercept = dd_ref[1,"enr"],linetype="dashed",color="darkgrey")+
+  #  annotate("text", label = "Syn", x = "0.2-0.4", y = ref[1,"enr"], size = 4.5, colour = "darkgrey")+
+  geom_hline(yintercept =dd_ref[2,"enr"],linetype="dashed",color="darkgrey")+
+  #  annotate("text", label = "Mis", x = "0.2-0.4", y = ref[2,"enr"], size = 4.5, colour = "darkgrey")+
+    geom_hline(yintercept =dd_ref[3,"enr"],linetype="dashed",color="darkgrey")+
+  #  annotate("text", label = "PTV", x = "0.2-0.4", y = ref[3,"enr"], size = 4.5, colour = "darkgrey")+
+    #scale_x_discrete(labels=c(as.character(score_pct$range)))+
+   #geom_text(data = ann_text,aes(x="hrc",y=ref[1,"enr"],label = label))+
+   theme_bw(base_size = 13)+
+   theme(axis.text.x=element_blank(),
+        axis.ticks.x=element_blank(),plot.title = element_text(hjust = 0.5,vjust = -90))+
+   theme(axis.text.y = element_text(size=13))+
+   theme(strip.background = element_rect(colour="black", fill="white", size=0.5),strip.text.x = element_text(size=13, color="black"))+mytheme
+  
+  
+
+figure_2<-pct_plot
+figure_2
+#grid.arrange(hrc_range_plot, pct_plot, nrow = 1)
+
+```
