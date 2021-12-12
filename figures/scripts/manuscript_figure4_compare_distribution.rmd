@@ -1,0 +1,250 @@
+---
+title: "Compare_with_other_constraints by distribution"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## HRC 
+```{r}
+
+## data frame with all genomic positions with HMC scores
+all_domain_constraint_refsel_filtered_kmer <- read.delim("~/pfam/analysis_human_pfam/0_generate_constraint/output/95_CI/all_domain_constraint_refsel_filtered_kmer.bed", stringsAsFactors=FALSE)
+
+```
+
+
+## LOEUF and MOEUF
+
+```{r }
+library(data.table)
+#compare with MOEUF
+#all_domain_constraint_refsel_filtered_kmer <- read.delim("~/pfam/analysis_human_pfam/0_generate_constraint/output/95_CI/all_domain_constraint_refsel_filtered_kmer.bed", stringsAsFactors=FALSE)
+#uniq_hrc_score<-unique(all_domain_constraint_refsel_filtered_kmer[,c("X.chrom","end","residue_ci_u","gene_symbol")])
+
+#
+gnomad_gene <- read.delim("~/pfam/analysis_human_pfam/5_compare_other/pLI/gnomad.v2.1.1.lof_metrics.by_gene.txt.bgz", stringsAsFactors=FALSE)
+
+#all genomic positions with both MOEUF and HMC scores
+hrc_gnomad<-fread("/rds/general/user/xzhang13/home/pfam/analysis_human_pfam/8_compare_distribution/hrc_gnomad_inner.txt",stringsAsFactors = FALSE)
+
+hrc_gnomad$oe_lof_gnomad_bin_0.2<-factor(floor(hrc_gnomad$oe_lof_upper/0.2)*2/10)
+
+hrc_gnomad$oe_mis_gnomad_bin_0.2<-factor(floor(hrc_gnomad$oe_mis_upper/0.2)*2/10)
+
+
+
+
+
+
+```
+
+
+
+## 2D bin - LOEUF and MOEUF
+```{r}
+
+library(ggplot2)
+hrc_gnomad_positive<-subset(hrc_gnomad,hrc<1)
+
+loeuf_hrc_2d<-ggplot(hrc_gnomad_positive, aes(oe_lof_upper, hrc)) +
+  #geom_hex(bins = 50, color = "white")+
+  #geom_density_2d()+
+  #stat_density_2d(aes(fill = ..density..), geom = "polygon", contour = FALSE) +
+  geom_hex(bins = 30)+
+  ylab("HRC")+xlab("LOEUF")+
+  theme_bw(base_size=12)+scale_fill_gradient(low =  "bisque1", high = "#FC4E07",name="Number of\nconstrained variants\nby HRC")+theme(legend.title=element_text(size=10))
+loeuf_hrc_2d
+
+  moeuf_hrc_2d<-ggplot(hrc_gnomad_positive, aes(oe_mis_upper, hrc)) +
+  #geom_hex(bins = 50, color = "white")+
+  #geom_density_2d()+
+  #stat_density_2d(aes(fill = ..density..), geom = "polygon", contour = FALSE) +
+  geom_hex(bins = 30)+
+  ylab("HMC")+xlab("MOEUF")+
+  theme_bw(base_size=12)+scale_fill_gradient(low =  "bisque1", high = "#FC4E07",name="Number of HMC\nconstrained variants")+theme(legend.title=element_text(size=12))
+moeuf_hrc_2d
+
+
+
+```
+
+
+## Look at the mean/median HRC scores for each gene (depleted)
+```{r}
+hrc_gene<-aggregate(hrc~gene_symbol,data=hrc_gnomad,FUN=median)
+
+hrc_gnomad<-subset(hrc_gnomad,!is.na(hrc))
+hrc_constrained_percent<-aggregate(hrc~gene_symbol,data=hrc_gnomad,FUN=function(x){sum(x<0.8)/length(x)})
+hrc_gene_gnomad<-merge(hrc_constrained_percent,gnomad_gene[,c("gene","oe_mis_upper","oe_lof_upper","gene_length")],by.x="gene_symbol",by.y="gene")
+
+hrc_gene_gnomad$oe_lof_gnomad_bin_0.2<-factor(floor(hrc_gene_gnomad$oe_lof_upper/0.2)*2/10)
+
+hrc_gene_gnomad$oe_mis_gnomad_bin_0.2<-factor(floor(hrc_gene_gnomad$oe_mis_upper/0.2)*2/10)
+
+
+
+
+#2D: MOEUF vs Percent of constrained missense variants per gene
+ggplot(hrc_gene_gnomad, aes(oe_mis_upper, hrc)) +
+  geom_hex(bins = 30, color = "white")+
+  scale_fill_gradient(low =  "bisque1", high = "#FC4E07")+
+  ylab("Percent of constrained missense variants per gene")+
+  theme_bw()
+
+## Violin plot on percent of HRC constrained missense variants in genes -- too noisy
+ggplot(hrc_gene_gnomad, aes(x=`oe_mis_gnomad_bin_0.2`, y=hrc)) + 
+  geom_violin(trim=FALSE, fill="gray")+
+  labs(y="Percent of HMC constrained missense vairants per gene", x = "MOEUF")+
+  geom_boxplot(width=0.1)+
+  theme_classic()
+library(dplyr)
+hrc_gene_ci <- hrc_gene_gnomad %>% group_by(oe_mis_gnomad_bin_0.2) %>% summarise(m = mean(hrc),stdv = sd(hrc))
+
+ggplot(hrc_gene_ci, aes(oe_mis_gnomad_bin_0.2,m,fill=oe_mis_gnomad_bin_0.2)) + geom_pointrange(aes(ymin=m-stdv, ymax=m+stdv))+theme_classic()+theme(legend.position = "none")+labs(x="MOEUF",y="Proportion of constrained missense variants")
+  
+```
+
+
+## Bar plot
+```{r}
+
+hrc_gnomad_lof<-subset(hrc_gnomad,!is.na(oe_lof_upper))
+hrc_gnomad_mis<-subset(hrc_gnomad,!is.na(oe_mis_upper))
+
+lof_range<-unique(hrc_gnomad_lof$oe_lof_gnomad_bin_0.2)[order(unique(hrc_gnomad_lof$oe_lof_gnomad_bin_0.2))]
+
+count_hrc<-function(df,hrc_th,freq=TRUE){
+  if(freq){return(sum(df[,"hrc"]<hrc_th)/nrow(df))
+  }else{return(sum(df[,"hrc"]<hrc_th))}
+  
+}
+
+lof_range<-unique(hrc_gnomad_lof$oe_lof_gnomad_bin_0.2)[order(unique(hrc_gnomad_lof$oe_lof_gnomad_bin_0.2))]
+mis_range<-unique(hrc_gnomad_mis$oe_mis_gnomad_bin_0.2)[order(unique(hrc_gnomad_mis$oe_mis_gnomad_bin_0.2))]
+
+##LOEUF vs HRC - bar plot 
+count_hrc_df_1<-data.frame(lof_range,hrc_count=sapply(lof_range,function(x){count_hrc(hrc_gnomad_lof[which(hrc_gnomad_lof$oe_lof_gnomad_bin_0.2==x),],1)}),hrc_th="HRC<1")
+count_hrc_df_0.8<-data.frame(lof_range,hrc_count=sapply(lof_range,function(x){count_hrc(hrc_gnomad_lof[which(hrc_gnomad_lof$oe_lof_gnomad_bin_0.2==x),],0.8)}),hrc_th="HRC<0.8")
+lof_count_hrc_df<-rbind(count_hrc_df_0.8,count_hrc_df_1)
+lof_count_hrc_df$hrc_th<-factor(lof_count_hrc_df$hrc_th)
+
+## Number of variants could be prioritised by HRC
+count_hrc(hrc_gnomad_lof[which(hrc_gnomad_lof$oe_lof_upper>=1),],0.8,freq=FALSE)
+count_hrc(hrc_gnomad_mis[which(hrc_gnomad_lof$oe_mis_upper>=1),],0.8,freq=FALSE)
+
+loeuf_hrc_bar<-ggplot(data=lof_count_hrc_df, aes(x=lof_range, y=hrc_count,fill=hrc_th)) +
+  geom_bar(stat="identity", position=position_dodge(),alpha=0.8)+ylab("Proportion of constrained variants by HRC in each bin")+xlab("LOEUF")+
+  geom_vline(xintercept = "1", linetype="dashed", color = "grey", size=1.5)+scale_fill_manual(values=c("#B2182B","#f37735"),name="Constrained\n theshold")+theme_classic(base_size = 12)+theme(legend.title = element_text(size=10),axis.title.y = element_text(size = 10))
+
+loeuf_hrc_bar
+
+##MOEUF vs HRC - bar plot 
+hrc_gnomad_mis<-subset(hrc_gnomad,!is.na(oe_mis_upper))
+
+mis_range<-unique(hrc_gnomad_mis$oe_mis_gnomad_bin_0.2)[order(unique(hrc_gnomad_mis$oe_mis_gnomad_bin_0.2))]
+
+count_hrc_df_1<-data.frame(mis_range,hrc_count=sapply(mis_range,function(x){count_hrc(hrc_gnomad_mis[which(hrc_gnomad_mis$oe_mis_gnomad_bin_0.2==x),],1)}),hrc_th="HMC<1")
+count_hrc_df_0.8<-data.frame(mis_range,hrc_count=sapply(mis_range,function(x){count_hrc(hrc_gnomad_mis[which(hrc_gnomad_mis$oe_mis_gnomad_bin_0.2==x),],0.8)}),hrc_th="HMC<0.8")
+mis_count_hrc_df<-rbind(count_hrc_df_0.8,count_hrc_df_1)
+mis_count_hrc_df$hrc_th<-factor(mis_count_hrc_df$hrc_th)
+
+moeuf_hrc_bar<-ggplot(data=mis_count_hrc_df, aes(x=mis_range, y=hrc_count,fill=hrc_th)) +
+  geom_bar(stat="identity", position=position_dodge(),alpha=0.8)+ylab("Proportion of HMC\nconstrained variants")+xlab("MOEUF")+
+  geom_vline(xintercept = "1", linetype="dashed", color = "grey", size=1.5)+theme_classic(base_size = 12)+scale_fill_manual(values=c("#B2182B","#f37735"),name="Constrained\ntheshold")+theme(legend.title=element_text(size=12),legend.text =element_text(size=12),axis.title.y = element_text(size = 12))
+moeuf_hrc_bar
+library(cowplot)
+plot_grid(moeuf_hrc_bar,moeuf_hrc_2d,nrow = 1)
+```
+
+## CCR vs HRC
+
+```{r}
+#all genomic positions with both CCR and HMC scores
+hrc_ccr <- fread("~/pfam/analysis_human_pfam/8_compare_distribution/hrc_ccr_inner.txt", stringsAsFactors=FALSE)
+hrc_ccr$hrc_bin<-round(hrc_ccr$hrc*10)/10
+hrc_ccr$ccr_bin<-floor(hrc_ccr$ccr/10)*10
+
+positive_hrc_ccr<-subset(hrc_ccr,hrc<1)
+
+range=seq(0,95,5)
+count_hrc<-function(df,th1,th2,hrc_th,freq=TRUE){
+  subset_df<-df[which(df[,"ccr_pct"]>th1&df[,"ccr_pct"]<th2),]
+  if(freq){return(sum(subset_df[,"hrc"]<hrc_th)/nrow(subset_df))
+    }else{return(sum(subset_df[,"hrc"]<hrc_th))}
+  
+}
+count_hrc_df_1<-data.frame(ccr_percentile=range+5,hrc_count=sapply(range,function(x){count_hrc(hrc_ccr,x,x+5,1)}),hrc_th="HMC<1")
+count_hrc_df_0.8<-data.frame(ccr_percentile=range+5,hrc_count=sapply(range,function(x){count_hrc(hrc_ccr,x,x+5,0.8)}),hrc_th="HMC<0.8")
+
+ccr_count_hrc_df<-rbind(count_hrc_df_0.8,count_hrc_df_1)
+ccr_count_hrc_df$hrc_th<-as.factor(ccr_count_hrc_df$hrc_th)
+
+#number of variants could be prioritised by HRC
+count_hrc(hrc_ccr,-1,95,0.8,freq=FALSE)
+
+ccr_hrc_bar<-ggplot(data=ccr_count_hrc_df, aes(x=ccr_percentile, y=hrc_count,fill=hrc_th)) +
+  geom_bar(stat="identity", position=position_dodge())+ylab("Proportion of HMC\n constrained variants")+xlab("CCR percentile")+
+  geom_vline(xintercept = 95, linetype="dashed", color = "grey", size=1.5)+scale_x_continuous(limits=c(0, 100),breaks=seq(0,100,10))+
+  theme_classic(base_size=12)+scale_fill_manual(values=c("#B2182B","#f37735"),name="Constrained\nthreshold")+theme(legend.title=element_text(size=12),legend.text =element_text(size=12),axis.title.y = element_text(size = 12))
+ccr_hrc_bar
+
+ccr_hrc_2d<-ggplot(positive_hrc_ccr, aes(ccr_pct, hrc)) +
+  #geom_hex(bins = 50, color = "white")+
+  #geom_density_2d()+
+  #stat_density_2d(aes(fill = ..density..), geom = "polygon", contour = FALSE) +
+  geom_hex(bins = 30)+
+  ylab("HMC")+xlab("CCR percentile")+
+  theme_bw(base_size=12)+scale_fill_gradient(low =  "bisque1", high = "#FC4E07",name="Number of HMC\nconstrained variants")+theme(legend.title=element_text(size=12))
+ccr_hrc_2d
+
+
+```
+## RMC vs HRC 
+```{r}
+##all genomic positions with both RMC and HMC scores
+rmc_hrc<-fread("/rds/general/user/xzhang13/home/pfam/analysis_human_pfam/8_compare_distribution/hrc_rmc_inner.txt",sep="\t",header = T)
+
+rmc_hrc$rmc_bin_0.2<-factor(ifelse(rmc_hrc$rmc<=2,floor(rmc_hrc$rmc/0.2)*2/10,">2"),levels=c(as.character(seq(0,1.6,0.2)),">2"))
+
+count_hrc<-function(df,hrc_th,freq=TRUE){
+  if(freq){return(sum(df[,"hrc"]<hrc_th)/nrow(df))
+  }else{return(sum(df[,"hrc"]<hrc_th))}
+  
+}
+
+rmc_range<-unique(rmc_hrc$rmc_bin_0.2)
+count_hrc_df_1<-data.frame(rmc_range,hrc_count=sapply(rmc_range,function(x){count_hrc(rmc_hrc[which(rmc_hrc$rmc_bin_0.2==x),],1)}),hrc_th="HMC<1")
+count_hrc_df_0.8<-data.frame(rmc_range,hrc_count=sapply(rmc_range,function(x){count_hrc(rmc_hrc[which(rmc_hrc$rmc_bin_0.2==x),],0.8)}),hrc_th="HMC<0.8")
+
+rmc_count_hrc_df<-rbind(count_hrc_df_0.8,count_hrc_df_1)
+rmc_count_hrc_df$hrc_th<-as.factor(rmc_count_hrc_df$hrc_th)
+
+##The number of variants could be prioritised by HRC but not RMC
+count_hrc(rmc_hrc[which(rmc_hrc$rmc>0.8),],0.8,freq=FALSE)
+
+rmc_hrc_bar<-ggplot(data=rmc_count_hrc_df, aes(x=rmc_range, y=hrc_count,fill=hrc_th)) +
+  geom_bar(stat="identity", position=position_dodge())+ylab("Proportion of HMC\n constrained variants ")+xlab("RMC")+
+  geom_vline(xintercept = "0.8", linetype="dashed", color = "grey", size=1.5)+
+  theme_classic(base_size = 12)+scale_fill_manual(values=c("#B2182B","#f37735"),name="Constrained\nthreshold")+theme(legend.title=element_text(size=12),legend.text =element_text(size=12),axis.title.y = element_text(size = 12))
+rmc_hrc_bar
+
+positive_hrc_rmc<-subset(rmc_hrc,hrc<1)
+rmc_hrc_2d<-ggplot(positive_hrc_rmc, aes(rmc, hrc)) +
+  #geom_hex(bins = 50, color = "white")+
+  #geom_density_2d()+
+  #stat_density_2d(aes(fill = ..density..), geom = "polygon", contour = FALSE) +
+  geom_hex(bins = 30)+
+  ylab("HMC")+xlab("RMC")+
+  theme_bw(base_size=12)+scale_fill_gradient(low =  "bisque1", high = "#FC4E07",name="Number of HMC\nconstrained variants\n")+theme(legend.title=element_text(size=12))
+rmc_hrc_2d
+
+```
+
+
+## aggregate the plots
+```{r}
+plot_grid(moeuf_hrc_bar,moeuf_hrc_2d,ccr_hrc_bar,ccr_hrc_2d,rmc_hrc_bar,rmc_hrc_2d,ncol=2,labels="auto")
+```
