@@ -12,6 +12,9 @@ knitr::opts_chunk$set(echo = TRUE)
 mis_dnv_hmc<-read.delim("/rds/general/user/xzhang13/home/pfam/manuscript/data/mis_dnv_hmc_2020ASD.txt",stringsAsFactors = FALSE)
 
 mis_dnv_hmc$label<-ifelse(mis_dnv_hmc$disease!="control",1,0)
+
+# add information about whether this variant is seen in gnomAD
+# this is a data frame with all missense variants seen in gnomAD v2
 load("~/pfam/gnomAD_v2_exome_observed/gnomad_all_chr_mis.RData")
 mis_dnv_hmc$gnomad<-ifelse(is.element(mis_dnv_hmc$Uploaded_variation,gnomad_mis),1,0)
 table(mis_dnv_hmc$gnomad)
