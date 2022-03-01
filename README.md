@@ -27,7 +27,10 @@ The manuscript introducing HMC is avalable here https://www.medrxiv.org/content/
 
 [create_HMC](https://github.com/ImperialCardioGenetics/homologous-missense-constraint/tree/main/create_HMC) provides the scripts to create homologous missense constraint. 
 
-[figures](https://github.com/ImperialCardioGenetics/homologous-missense-constraint/tree/main/figures) includes the scripts to recreate the main figures in the manuscript
+[demo] includes input data and expected output by running creating HMC algorithm.  
+
+[manuscript_figures](https://github.com/ImperialCardioGenetics/homologous-missense-constraint/tree/main/figures) includes the scripts to recreate the main figures in the manuscript
+
 
 # System requirements
 
