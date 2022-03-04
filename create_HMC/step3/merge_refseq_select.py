@@ -2,7 +2,8 @@ import pandas as pd
 import os, fnmatch
 import sys
 
-mis_file=pd.read_csv("/rds/general/user/xzhang13/projects/lms-ware-analysis/live/xzhang/all_pos_SNV/refseq_select_seq_context/refseq_select_rare_mis_cont.txt",sep="\t",low_memory=True)
+mis_file_path=sys.argv[2]
+mis_file=pd.read_csv(mis_file_path,sep="\t",low_memory=True)
 human_pfam_file_path = sys.argv[1]
 
 pfam_list = [line.rstrip() for line in open(human_pfam_file_path)]
