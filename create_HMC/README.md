@@ -34,24 +34,33 @@ One required input:
 ### Step 3. Annotate all the possible missense variants at the homologous residues 
 
 In the third step, we get all the possible missense variants at the homologous residues by:
-(1)synthesis all possible single nucleotide variants (SNVs) at the homologous residues
-(2)keep all the SNVs that are annotated as missense variants on human transcripts (in our study, we used Refseq Select as reference)
+(1)synthesize all possible single nucleotide variants (SNVs) at the homologous residues
+(2)keep the SNVs that are annotated as missense variants on human transcripts (in our study, we used Refseq Select as reference)
 
 This is done by running:
 
-```python merge_refseq_select.py list_of_human_pfam_aa_files```
+```python merge_refseq_select.py [all_human_mis_snv] [human_pfam_aa_file_list]```
 
-(The input file is a list of files output from step2)
+Two required inputs:
+
+[all_human_mis_snv]: a flat file with all possible missense variants annotated at human transcripts. Example: [step3/example_all_pos_rare_mis_refseq.txt](https://github.com/ImperialCardioGenetics/homologous-missense-constraint/blob/main/create_HMC/step3/example_all_pos_rare_mis_refseq.txt)
+
+[human_pfam_aa_file_list]: a list of homologous residue information files (output file from Step 2). Example: [step3/sub_human_pfam_aa_list_aa](https://github.com/ImperialCardioGenetics/homologous-missense-constraint/blob/main/create_HMC/step3/sub_human_pfam_aa_list_aa)
 
 ### Step 4: Calculate genetic constraint for each homologous residues 
 
 This is done by running: 
 
-```Rscript calculate_constraint.R [domain_id]```
+```Rscript calculate_constraint.R [input_domain_homologous_mis] [coverage_correction_facotor] [mutability_table] [AA_abreviation_table]```
 
 Required inputs: 
 
-[domain_id]: target domain id to caluate genetic constraint
+[input_domain_homologous_mis]: a file with all possible missense variants at the homologous residues in a protein domain family (output file from Step 3)
 
+The other required inputs are assistant files to calculate constraint, we have provided the ones used in our study:
 
+[coverage_correction_factor]: An R data object saving the factors used to adjust the probability of neutral substitions for genomic sites with low sequencing-coverage (More information can be found at the [Zhang.X, et.al medRxiv](https://www.medrxiv.org/content/10.1101/2022.02.16.22271023v1) Method section - Developing a selection-neutral, sequence-context mutational model). 
 
+[mutability_table]: An R data object saving the probabilities of neutral substitutions in gnomAD 125K exomes for each tri-nucleotide sequence context and methylation level. This is calculated by calibration from baseline mutation rate to probabilities of synonymous variants in gnomAD 125K exomes.(More information can be found at the [Zhang.X, et.al medRxiv](https://www.medrxiv.org/content/10.1101/2022.02.16.22271023v1) Method section - Developing a selection-neutral, sequence-context mutational model)
+
+[AA_abreviation_table]: An R data object saving the table of amino acid abreviation 
