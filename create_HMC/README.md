@@ -31,16 +31,27 @@ One required input:
 
 [pfam_id_list]: list of pfam ids to extract homologous residue information. Example: [step2/human_pfam_domain_id_uniq_sortaa](https://github.com/ImperialCardioGenetics/homologous-missense-constraint/blob/main/create_HMC/step2/human_pfam_domain_id_uniq_sortaa)
 
-### Step 3. Get the synthetic SNVs from the file of Step 2 by merging it with all possible missense variants annotated on human transcripts (version: Refseq Select). 
+### Step 3. Annotate all the possible missense variants at the homologous residues 
 
-sample cmd: 
+In the third step, we get all the possible missense variants at the homologous residues by:
+(1)synthesis all possible single nucleotide variants (SNVs) at the homologous residues
+(2)keep all the SNVs that are annotated as missense variants on human transcripts (in our study, we used Refseq Select as reference)
+
+This is done by running:
 
 ```python merge_refseq_select.py list_of_human_pfam_aa_files```
 
 (The input file is a list of files output from step2)
 
-### Step 4: Calculate constraint 
+### Step 4: Calculate genetic constraint for each homologous residues 
 
-sample cmd:
+This is done by running: 
 
-```Rscript calculate_constraint.R domain_id```
+```Rscript calculate_constraint.R [domain_id]```
+
+Required inputs: 
+
+[domain_id]: target domain id to caluate genetic constraint
+
+
+
