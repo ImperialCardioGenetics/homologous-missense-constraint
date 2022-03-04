@@ -1,11 +1,11 @@
 # Homologous Missense Constraint
-The manuscript introducing HMC is avalable here https://www.medrxiv.org/content/10.1101/2022.02.16.22271023v1. 
+Genetic Intolerance of Missense Variation at Homologous Residues of Pfam domains
 
 # Contents
 
 [Overview](#overview)
 
-[Repo contents](#repo-contents)
+[Repository contents](#repository-contents)
 
 [System requirements](#system-requirements)
 
@@ -23,13 +23,17 @@ The manuscript introducing HMC is avalable here https://www.medrxiv.org/content/
 
 # Overview
 
-# Repo contents
+Homologous Missense Constraint (HMC) is a novel pathogenicity predictor for missense variants. It measures the degree of depletion of missense variants at homologous residues across protein domain families. We have demonstrated that it can improve missense intrepretation and gene discovery. More information can be found in [Zhang.X, et.al medRxiv](https://www.medrxiv.org/content/10.1101/2022.02.16.22271023v1) 
 
-[create_HMC](https://github.com/ImperialCardioGenetics/homologous-missense-constraint/tree/main/create_HMC) provides the scripts to create homologous missense constraint. 
+# Repository contents
 
-[demo] includes input data and expected output by running creating HMC algorithm.  
+There are three main components of this repository: 
 
-[manuscript_figures](https://github.com/ImperialCardioGenetics/homologous-missense-constraint/tree/main/figures) includes the scripts to recreate the main figures in the manuscript
+1. [create_HMC](https://github.com/ImperialCardioGenetics/homologous-missense-constraint/tree/main/create_HMC): scripts to generate HMC scores. 
+
+2. [demo]: example to generate HMC scores with input file and expected output
+
+3. [manuscript_figures](https://github.com/ImperialCardioGenetics/homologous-missense-constraint/tree/main/figures): scripts and data tables to recreate the main figures in the manuscript
 
 
 # System requirements
