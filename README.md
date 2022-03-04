@@ -31,9 +31,9 @@ There are three main components of this repository:
 
 1. [create_HMC](https://github.com/ImperialCardioGenetics/homologous-missense-constraint/tree/main/create_HMC): scripts to generate HMC scores. 
 
-2. [demo]: example to generate HMC scores with input file and expected output
+2. [demo](https://github.com/ImperialCardioGenetics/homologous-missense-constraint/tree/main/demo): example to generate HMC scores with input file and expected output
 
-3. [manuscript_figures](https://github.com/ImperialCardioGenetics/homologous-missense-constraint/tree/main/figures): scripts and data tables to recreate the main figures in the manuscript
+3. [manuscript_figures](https://github.com/ImperialCardioGenetics/homologous-missense-constraint/tree/main/manuscript_figures): scripts and data tables to recreate the main figures in the manuscript
 
 
 # System requirements
