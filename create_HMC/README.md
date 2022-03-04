@@ -51,6 +51,8 @@ Two required inputs:
 
 This is done by running: 
 
+(??change the R script: input arguments and output path)
+
 ```Rscript calculate_constraint.R [input_domain_homologous_mis] [coverage_correction_facotor] [mutability_table] [AA_abreviation_table]```
 
 Required inputs: 
@@ -63,4 +65,5 @@ The other required inputs are assistant files to calculate constraint, we have p
 
 [mutability_table]: An R data object saving the probabilities of neutral substitutions in gnomAD 125K exomes for each tri-nucleotide sequence context and methylation level. This is calculated by calibration from baseline mutation rate to probabilities of synonymous variants in gnomAD 125K exomes.(More information can be found at the [Zhang.X, et.al medRxiv](https://www.medrxiv.org/content/10.1101/2022.02.16.22271023v1) Method section - Developing a selection-neutral, sequence-context mutational model)
 
-[AA_abreviation_table]: An R data object saving the table of amino acid abreviation 
+(?? more specific)
+[AA_abreviation_table]: An R data object saving the table of amino acid abreviation  
