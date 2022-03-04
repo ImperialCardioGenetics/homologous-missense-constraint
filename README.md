@@ -23,7 +23,9 @@ Genetic Intolerance of Missense Variation at Homologous Residues of Pfam domains
 
 # Overview
 
-Homologous Missense Constraint (HMC) is a novel pathogenicity predictor for missense variants. It measures the degree of depletion of missense variants at homologous residues across protein domain families. We have demonstrated that it can improve missense intrepretation and gene discovery. More information can be found in [Zhang.X, et.al medRxiv](https://www.medrxiv.org/content/10.1101/2022.02.16.22271023v1) 
+Homologous Missense Constraint (HMC) is a novel pathogenicity predictor for missense variants. It measures the degree of depletion of missense variants at homologous residues across protein domain families. We have demonstrated that it can improve missense intrepretation and gene discovery. 
+
+More information can be found in [Zhang.X, et.al medRxiv](https://www.medrxiv.org/content/10.1101/2022.02.16.22271023v1) 
 
 # Repository contents
 
