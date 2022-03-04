@@ -12,7 +12,7 @@ There are four required arguments:
 [Pfam_full_alignment_file]: Path of full alignment file of all Pfam domains (including human and other species) in stockholm format.
 In our study, we used the annotation and full alignment file of all Pfam-A families against NCBI genpept database (Pfam-A.full.ncbi.gz from Pfam version 32.0). It can be downloaded via [Pfam FTP site](ftp://ftp.ebi.ac.uk/pub/databases/Pfam/releases/Pfam32.0/Pfam-A.full.ncbi.gz)). The latest can be found at [current release folder of Pfam FTP site](ftp://ftp.ebi.ac.uk/pub/databases/Pfam/current_release). 
 
-[human_pfam_domain_id_list]: list of human Pfam domain IDs to extract. Example[step1/human_pfam_domain_id_uniq_sort](https://github.com/ImperialCardioGenetics/homologous-missense-constraint/blob/main/create_HMC/step1/human_pfam_domain_id_uniq_sort).
+[human_pfam_domain_id_list]: list of human Pfam domain IDs to extract. Example: [step1/human_pfam_domain_id_uniq_sort](https://github.com/ImperialCardioGenetics/homologous-missense-constraint/blob/main/create_HMC/step1/human_pfam_domain_id_uniq_sort).
 
 [output_folder]: path of output folder to store the alignment of pfam domains that we intend to extract
 
