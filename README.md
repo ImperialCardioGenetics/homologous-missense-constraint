@@ -7,13 +7,13 @@ Genetic Intolerance of Missense Variation at Homologous Residues of Pfam domains
 
 [Repository contents](#repository-contents)
 
-[System requirements](#system-requirements)
+<!--- [System requirements](#system-requirements) --->
 
-[Installation guide](#installation-guide)
+<!--- [Installation guide](#installation-guide)--->
 
-[Demo](#demo)
+<!---[Demo](#demo)--->
 
-[Instructions for use](#instructions-for-use)
+<!---[Instructions for use](#instructions-for-use)--->
 
 [Manuscripts figures](#manuscript-figures)
 
@@ -38,7 +38,7 @@ There are three main components of this repository:
 3. [manuscript_figures](https://github.com/ImperialCardioGenetics/homologous-missense-constraint/tree/main/manuscript_figures): scripts and data tables to recreate the main figures in the manuscript
 
 
-# System requirements
+<!--- # System requirements
 
 All software dependencies and operating systems (including version numbers)
 
@@ -63,10 +63,12 @@ Expected run time for demo on a "normal" desktop computer
 # Instructions for use
 
 How to run the software on your data
-(OPTIONAL) Reproduction instructions
+(OPTIONAL) Reproduction instructions 
 
-# Manuscript figures
+# Manuscript figures --->
 
 # License
+
+The data provided here is available under the <a href="https://opendatacommons.org/licenses/odbl/summary/index.html">ODC Open Database License (ODbL) </a>: you are free to share and modify the data provided here as long as you attribute any public use of the database, or works produced from the database; keep the resulting data-sets open; and offer your shared or adapted version of the dataset under the same ODbL license.
 
 # Citation
