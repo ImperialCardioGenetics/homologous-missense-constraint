@@ -33,9 +33,9 @@ There are three main components of this repository:
 
 1. [create_HMC](https://github.com/ImperialCardioGenetics/homologous-missense-constraint/tree/main/create_HMC): scripts to generate HMC scores. 
 
-2. [demo](https://github.com/ImperialCardioGenetics/homologous-missense-constraint/tree/main/demo): example to generate HMC scores with input file and expected output
+<!--- 2. [demo](https://github.com/ImperialCardioGenetics/homologous-missense-constraint/tree/main/demo): example to generate HMC scores with input file and expected output --->
 
-3. [manuscript_figures](https://github.com/ImperialCardioGenetics/homologous-missense-constraint/tree/main/manuscript_figures): scripts and data tables to recreate the main figures in the manuscript
+2. [manuscript_figures](https://github.com/ImperialCardioGenetics/homologous-missense-constraint/tree/main/manuscript_figures): scripts and data tables to recreate the main figures in the manuscript
 
 
 <!--- # System requirements
@@ -72,3 +72,4 @@ How to run the software on your data
 The data provided here is available under the <a href="https://opendatacommons.org/licenses/odbl/summary/index.html">ODC Open Database License (ODbL) </a>: you are free to share and modify the data provided here as long as you attribute any public use of the database, or works produced from the database; keep the resulting data-sets open; and offer your shared or adapted version of the dataset under the same ODbL license.
 
 # Citation
+[Zhang.X, et.al medRxiv](https://www.medrxiv.org/content/10.1101/2022.02.16.22271023v1) 
